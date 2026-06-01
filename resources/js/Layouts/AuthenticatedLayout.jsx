@@ -1,5 +1,6 @@
 import ApplicationLogo from '@/Components/ApplicationLogo';
 import Dropdown from '@/Components/Dropdown';
+import FlashAlert from '@/Components/FlashAlert';
 import NavLink from '@/Components/NavLink';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink';
 import { Link, usePage } from '@inertiajs/react';
@@ -170,7 +171,12 @@ export default function AuthenticatedLayout({ header, children }) {
                 </header>
             )}
 
-            <main>{children}</main>
+            <main>
+                <div className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
+                    <FlashAlert />
+                </div>
+                {children}
+            </main>
         </div>
     );
 }
