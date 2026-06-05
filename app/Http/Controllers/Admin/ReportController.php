@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Maatwebsite\Excel\Facades\Excel;
+use App\Helpers\ActivityLogger;
 
 class ReportController extends Controller
 {
@@ -16,9 +17,10 @@ class ReportController extends Controller
     {
         $query = $this->transactionQuery($request);
 
-        $transactions = $query->get();
+        $summaryTransactions = (clone $query)->get();
+        $transactions = $query->paginate(15)->withQueryString();
 
-        $totalAmount = $transactions
+        $totalAmount = $summaryTransactions
             ->where('status', 'approved')
             ->sum('amount');
 
@@ -38,17 +40,32 @@ class ReportController extends Controller
                 'end_date' => $request->end_date,
             ],
             'summary' => [
-                'totalTransactions' => $transactions->count(),
+                'totalTransactions' => $summaryTransactions->count(),
                 'totalApprovedAmount' => $totalAmount,
-                'totalPending' => $transactions->where('status', 'pending')->count(),
-                'totalApproved' => $transactions->where('status', 'approved')->count(),
-                'totalRejected' => $transactions->where('status', 'rejected')->count(),
+                'totalPending' => $summaryTransactions->where('status', 'pending')->count(),
+                'totalApproved' => $summaryTransactions->where('status', 'approved')->count(),
+                'totalRejected' => $summaryTransactions->where('status', 'rejected')->count(),
             ],
         ]);
     }
 
     public function exportTransactions(Request $request)
     {
+        ActivityLogger::log(
+            'export_transaction_report',
+            'Admin melakukan export laporan transaksi.',
+            null,
+            [
+                'filters' => [
+                    'user_id' => $request->user_id,
+                    'status' => $request->status,
+                    'type' => $request->type,
+                    'start_date' => $request->start_date,
+                    'end_date' => $request->end_date,
+                ],
+            ]
+        );
+
         $filename = 'laporan-transaksi-' . now()->format('Y-m-d-His') . '.xlsx';
 
         return Excel::download(new TransactionsExport($request), $filename);

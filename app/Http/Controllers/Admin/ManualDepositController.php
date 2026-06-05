@@ -8,6 +8,8 @@ use App\Models\Transaction;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
+use App\Helpers\ActivityLogger;
+use App\Helpers\NotificationHelper;
 
 class ManualDepositController extends Controller
 {
@@ -51,7 +53,7 @@ class ManualDepositController extends Controller
             ->where('status', 'active')
             ->firstOrFail();
 
-        Transaction::create([
+        $transaction = Transaction::create([
             'user_id' => $request->user_id,
             'saving_goal_id' => $savingGoal->id,
             'type' => 'deposit',
@@ -62,6 +64,27 @@ class ManualDepositController extends Controller
             'approved_by' => auth()->id(),
             'approved_at' => now(),
         ]);
+
+        NotificationHelper::send(
+            $transaction->user_id,
+            'Setoran Manual Berhasil Dicatat',
+            'Admin telah mencatat setoran sebesar Rp ' . number_format($transaction->amount, 0, ',', '.') . ' ke target tabungan Anda.',
+            'success'
+        );
+
+
+        ActivityLogger::log(
+            'manual_deposit',
+            'Admin mencatat setoran manual sebesar Rp ' . number_format($transaction->amount, 0, ',', '.'),
+            $transaction,
+            [
+                'transaction_id' => $transaction->id,
+                'user_id' => $transaction->user_id,
+                'saving_goal_id' => $transaction->saving_goal_id,
+                'amount' => $transaction->amount,
+                'created_by_admin' => auth()->id(),
+            ]
+        );
 
         $savingGoal->update([
             'current_amount' => $savingGoal->current_amount + $request->amount,

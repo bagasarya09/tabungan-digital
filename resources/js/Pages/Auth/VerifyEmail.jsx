@@ -1,4 +1,3 @@
-import PrimaryButton from '@/Components/PrimaryButton';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 
@@ -12,38 +11,35 @@ export default function VerifyEmail({ status }) {
     };
 
     return (
-        <GuestLayout>
-            <Head title="Email Verification" />
-
-            <div className="mb-4 text-sm text-gray-600">
-                Thanks for signing up! Before getting started, could you verify
-                your email address by clicking on the link we just emailed to
-                you? If you didn't receive the email, we will gladly send you
-                another.
-            </div>
+        <GuestLayout
+            title="Verifikasi email"
+            subtitle="Kami sudah mengirim link verifikasi. Cek email Anda sebelum melanjutkan."
+        >
+            <Head title="Verifikasi Email" />
 
             {status === 'verification-link-sent' && (
-                <div className="mb-4 text-sm font-medium text-green-600">
-                    A new verification link has been sent to the email address
-                    you provided during registration.
+                <div className="mb-4 rounded-lg border border-[#DCFCE7] bg-[#DCFCE7] px-4 py-3 text-sm text-[#15803D]">
+                    Link verifikasi baru sudah dikirim ke email Anda.
                 </div>
             )}
 
-            <form onSubmit={submit}>
-                <div className="mt-4 flex items-center justify-between">
-                    <PrimaryButton disabled={processing}>
-                        Resend Verification Email
-                    </PrimaryButton>
+            <form onSubmit={submit} className="space-y-4">
+                <button
+                    type="submit"
+                    disabled={processing}
+                    className="w-full rounded-lg bg-[#16A34A] px-4 py-3 text-sm font-semibold text-white hover:bg-[#15803D] disabled:opacity-60"
+                >
+                    {processing ? 'Mengirim...' : 'Kirim Ulang Verifikasi'}
+                </button>
 
-                    <Link
-                        href={route('logout')}
-                        method="post"
-                        as="button"
-                        className="rounded-md text-sm text-gray-600 underline hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                    >
-                        Log Out
-                    </Link>
-                </div>
+                <Link
+                    href={route('logout')}
+                    method="post"
+                    as="button"
+                    className="block w-full rounded-lg border border-[#E5E3DF] bg-white px-4 py-3 text-center text-sm font-semibold text-[#5D5B54] hover:bg-[#F6F5F4]"
+                >
+                    Logout
+                </Link>
             </form>
         </GuestLayout>
     );

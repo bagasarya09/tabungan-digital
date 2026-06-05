@@ -1,366 +1,705 @@
 import { Head, Link } from '@inertiajs/react';
+import { useState } from 'react';
+import {
+    BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+    XAxis, YAxis, Tooltip, ResponsiveContainer
+} from 'recharts';
 
-export default function Welcome({
-    auth = {},
-    canLogin,
-    canRegister,
-    laravelVersion = '',
-    phpVersion = '',
-}) {
-    const handleImageError = () => {
-        document
-            .getElementById('screenshot-container')
-            ?.classList.add('!hidden');
-        document.getElementById('docs-card')?.classList.add('!row-span-1');
-        document
-            .getElementById('docs-card-content')
-            ?.classList.add('!flex-row');
-        document.getElementById('background')?.classList.add('!hidden');
-    };
+// ─── Dummy Data ───────────────────────────────────────────────────────────────
+const barData = [
+    { bulan: 'Jan', setoran: 400000, penarikan: 120000 },
+    { bulan: 'Feb', setoran: 300000, penarikan: 80000 },
+    { bulan: 'Mar', setoran: 600000, penarikan: 200000 },
+    { bulan: 'Apr', setoran: 450000, penarikan: 150000 },
+    { bulan: 'Mei', setoran: 700000, penarikan: 100000 },
+    { bulan: 'Jun', setoran: 520000, penarikan: 90000 },
+];
+const lineData = [
+    { bulan: 'Jan', saldo: 800000 },
+    { bulan: 'Feb', saldo: 1020000 },
+    { bulan: 'Mar', saldo: 1420000 },
+    { bulan: 'Apr', saldo: 1720000 },
+    { bulan: 'Mei', saldo: 2320000 },
+    { bulan: 'Jun', saldo: 2750000 },
+];
+const pieData = [
+    { name: 'Selesai', value: 3 },
+    { name: 'Aktif', value: 5 },
+    { name: 'Menunggu', value: 2 },
+];
+const PIE_COLORS = ['#16A34A', '#DCFCE7', '#BBF7D0'];
+
+const fmtRupiah = (n) => 'Rp ' + n.toLocaleString('id-ID');
+
+// ─── FAQ Items ─────────────────────────────────────────────────────────────────
+const FAQ_ITEMS = [
+    {
+        q: 'Apakah saldo langsung berubah saat user mengajukan setoran?',
+        a: 'Tidak. Saldo baru bertambah setelah admin menyetujui (approve) pengajuan setoran tersebut.',
+    },
+    {
+        q: 'Apakah user bisa menarik lebih dari saldo yang tersedia?',
+        a: 'Tidak, sistem memvalidasi agar jumlah penarikan tidak melebihi saldo yang tersedia saat itu.',
+    },
+    {
+        q: 'Apakah transaksi bisa dicetak?',
+        a: 'Bisa. Tersedia fitur Buku Tabungan dan Laporan Transaksi yang bisa dicetak kapan saja.',
+    },
+    {
+        q: 'Apakah admin bisa mencatat setoran secara manual?',
+        a: 'Bisa. Admin dapat menginput setoran manual dengan status langsung approved tanpa perlu menunggu pengajuan dari user.',
+    },
+    {
+        q: 'Apakah semua aktivitas sistem tercatat?',
+        a: 'Ya, sistem memiliki fitur Activity Log yang mencatat semua aktivitas penting untuk keperluan audit dan keamanan.',
+    },
+];
+
+// ─── Sub-components ────────────────────────────────────────────────────────────
+function FAQItem({ q, a }) {
+    const [open, setOpen] = useState(false);
+    return (
+        <div className="border-b border-[#E5E3DF] last:border-0">
+            <button
+                onClick={() => setOpen(!open)}
+                className="w-full flex items-center justify-between py-4 text-left gap-4"
+            >
+                <span className="text-[#1A1A1A] font-medium text-sm md:text-base">{q}</span>
+                <span className="flex-shrink-0 w-6 h-6 rounded-full border border-[#E5E3DF] flex items-center justify-center text-[#16A34A] font-bold text-lg leading-none">
+                    {open ? '−' : '+'}
+                </span>
+            </button>
+            {open && (
+                <p className="pb-4 text-[#5D5B54] text-sm leading-relaxed">{a}</p>
+            )}
+        </div>
+    );
+}
+
+// ─── Icons ─────────────────────────────────────────────────────────────────────
+const IconWallet = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+        <rect x="2" y="6" width="20" height="14" rx="2" />
+        <path d="M16 13h2" />
+        <path d="M2 10h20" />
+        <path d="M6 6V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2" />
+    </svg>
+);
+const IconTarget = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+        <circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" />
+    </svg>
+);
+const IconCheck = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 text-[#16A34A] flex-shrink-0">
+        <polyline points="20 6 9 17 4 12" />
+    </svg>
+);
+const IconShield = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+);
+
+// ─── Main Component ────────────────────────────────────────────────────────────
+export default function Welcome({ auth = {}, canLogin, canRegister }) {
+    const [mobileOpen, setMobileOpen] = useState(false);
+
+    const navLinks = [
+        { label: 'Beranda', href: '#beranda' },
+        { label: 'Fitur', href: '#fitur' },
+        { label: 'Cara Kerja', href: '#cara-kerja' },
+        { label: 'Keamanan', href: '#keamanan' },
+        { label: 'FAQ', href: '#faq' },
+    ];
 
     return (
         <>
-            <Head title="Welcome" />
-            <div className="bg-gray-50 text-black/50 dark:bg-black dark:text-white/50">
-                <img
-                    id="background"
-                    className="absolute -left-20 top-0 max-w-[877px]"
-                    src="https://laravel.com/assets/img/welcome/background.svg"
-                />
-                <div className="relative flex min-h-screen flex-col items-center justify-center selection:bg-[#FF2D20] selection:text-white">
-                    <div className="relative w-full max-w-2xl px-6 lg:max-w-7xl">
-                        <header className="grid grid-cols-2 items-center gap-2 py-10 lg:grid-cols-3">
-                            <div className="flex lg:col-start-2 lg:justify-center">
-                                <svg
-                                    className="h-12 w-auto text-white lg:h-16 lg:text-[#FF2D20]"
-                                    viewBox="0 0 62 65"
-                                    fill="none"
-                                    xmlns="http://www.w3.org/2000/svg"
-                                >
-                                    <path
-                                        d="M61.8548 14.6253C61.8778 14.7102 61.8895 14.7978 61.8897 14.8858V28.5615C61.8898 28.737 61.8434 28.9095 61.7554 29.0614C61.6675 29.2132 61.5409 29.3392 61.3887 29.4265L49.9104 36.0351V49.1337C49.9104 49.4902 49.7209 49.8192 49.4118 49.9987L25.4519 63.7916C25.3971 63.8227 25.3372 63.8427 25.2774 63.8639C25.255 63.8714 25.2338 63.8851 25.2101 63.8913C25.0426 63.9354 24.8666 63.9354 24.6991 63.8913C24.6716 63.8838 24.6467 63.8689 24.6205 63.8589C24.5657 63.8389 24.5084 63.8215 24.456 63.7916L0.501061 49.9987C0.348882 49.9113 0.222437 49.7853 0.134469 49.6334C0.0465019 49.4816 0.000120578 49.3092 0 49.1337L0 8.10652C0 8.01678 0.0124642 7.92953 0.0348998 7.84477C0.0423783 7.8161 0.0598282 7.78993 0.0697995 7.76126C0.0884958 7.70891 0.105946 7.65531 0.133367 7.6067C0.152063 7.5743 0.179485 7.54812 0.20192 7.51821C0.230588 7.47832 0.256763 7.43719 0.290416 7.40229C0.319084 7.37362 0.356476 7.35243 0.388883 7.32751C0.425029 7.29759 0.457436 7.26518 0.498568 7.2415L12.4779 0.345059C12.6296 0.257786 12.8015 0.211853 12.9765 0.211853C13.1515 0.211853 13.3234 0.257786 13.475 0.345059L25.4531 7.2415H25.4556C25.4955 7.26643 25.5292 7.29759 25.5653 7.32626C25.5977 7.35119 25.6339 7.37362 25.6625 7.40104C25.6974 7.43719 25.7224 7.47832 25.7523 7.51821C25.7735 7.54812 25.8021 7.5743 25.8196 7.6067C25.8483 7.65656 25.8645 7.70891 25.8844 7.76126C25.8944 7.78993 25.9118 7.8161 25.9193 7.84602C25.9423 7.93096 25.954 8.01853 25.9542 8.10652V33.7317L35.9355 27.9844V14.8846C35.9355 14.7973 35.948 14.7088 35.9704 14.6253C35.9792 14.5954 35.9954 14.5692 36.0053 14.5405C36.0253 14.4882 36.0427 14.4346 36.0702 14.386C36.0888 14.3536 36.1163 14.3274 36.1375 14.2975C36.1674 14.2576 36.1923 14.2165 36.2272 14.1816C36.2559 14.1529 36.292 14.1317 36.3244 14.1068C36.3618 14.0769 36.3942 14.0445 36.4341 14.0208L48.4147 7.12434C48.5663 7.03694 48.7383 6.99094 48.9133 6.99094C49.0883 6.99094 49.2602 7.03694 49.4118 7.12434L61.3899 14.0208C61.4323 14.0457 61.4647 14.0769 61.5021 14.1055C61.5333 14.1305 61.5694 14.1529 61.5981 14.1803C61.633 14.2165 61.6579 14.2576 61.6878 14.2975C61.7103 14.3274 61.7377 14.3536 61.7551 14.386C61.7838 14.4346 61.8 14.4882 61.8199 14.5405C61.8312 14.5692 61.8474 14.5954 61.8548 14.6253ZM59.893 27.9844V16.6121L55.7013 19.0252L49.9104 22.3593V33.7317L59.8942 27.9844H59.893ZM47.9149 48.5566V37.1768L42.2187 40.4299L25.953 49.7133V61.2003L47.9149 48.5566ZM1.99677 9.83281V48.5566L23.9562 61.199V49.7145L12.4841 43.2219L12.4804 43.2194L12.4754 43.2169C12.4368 43.1945 12.4044 43.1621 12.3682 43.1347C12.3371 43.1097 12.3009 43.0898 12.2735 43.0624L12.271 43.0586C12.2386 43.0275 12.2162 42.9888 12.1887 42.9539C12.1638 42.9203 12.1339 42.8916 12.114 42.8567L12.1127 42.853C12.0903 42.8156 12.0766 42.7707 12.0604 42.7283C12.0442 42.6909 12.023 42.656 12.013 42.6161C12.0005 42.5688 11.998 42.5177 11.9931 42.4691C11.9881 42.4317 11.9781 42.3943 11.9781 42.3569V15.5801L6.18848 12.2446L1.99677 9.83281ZM12.9777 2.36177L2.99764 8.10652L12.9752 13.8513L22.9541 8.10527L12.9752 2.36177H12.9777ZM18.1678 38.2138L23.9574 34.8809V9.83281L19.7657 12.2459L13.9749 15.5801V40.6281L18.1678 38.2138ZM48.9133 9.14105L38.9344 14.8858L48.9133 20.6305L58.8909 14.8846L48.9133 9.14105ZM47.9149 22.3593L42.124 19.0252L37.9323 16.6121V27.9844L43.7219 31.3174L47.9149 33.7317V22.3593ZM24.9533 47.987L39.59 39.631L46.9065 35.4555L36.9352 29.7145L25.4544 36.3242L14.9907 42.3482L24.9533 47.987Z"
-                                        fill="currentColor"
-                                    />
-                                </svg>
+            <Head title="Tabungan Digital — Kelola Tabungan Lebih Rapi" />
+
+            <div className="min-h-screen bg-[#FAFAF9] text-[#1A1A1A] font-sans antialiased">
+
+                {/* ══ NAVBAR ══════════════════════════════════════════════════════ */}
+                <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-[#E5E3DF]">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex items-center justify-between h-16">
+                            {/* Logo */}
+                            <a href="#beranda" className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 bg-[#DCFCE7] rounded-lg flex items-center justify-center text-[#16A34A]">
+                                    <IconWallet />
+                                </div>
+                                <span className="font-semibold text-[#1A1A1A] text-base tracking-tight">Tabungan Digital</span>
+                            </a>
+
+                            {/* Desktop Nav */}
+                            <div className="hidden md:flex items-center gap-1">
+                                {navLinks.map(l => (
+                                    <a key={l.label} href={l.href}
+                                        className="px-3 py-2 text-sm text-[#5D5B54] hover:text-[#16A34A] hover:bg-[#DCFCE7] rounded-md transition-colors">
+                                        {l.label}
+                                    </a>
+                                ))}
                             </div>
-                            <nav className="-mx-3 flex flex-1 justify-end">
+
+                            {/* Desktop Buttons */}
+                            <div className="hidden md:flex items-center gap-2">
                                 {auth?.user ? (
-                                    <Link
-                                        href={route('dashboard')}
-                                        className="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
-                                    >
+                                    <Link href={route('dashboard')}
+                                        className="px-4 py-2 text-sm font-medium text-[#16A34A] border border-[#16A34A] rounded-lg hover:bg-[#DCFCE7] transition-colors">
                                         Dashboard
                                     </Link>
                                 ) : (
                                     <>
-                                        <Link
-                                            href={route('login')}
-                                            className="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
-                                        >
-                                            Log in
-                                        </Link>
-                                        <Link
-                                            href={route('register')}
-                                            className="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white"
-                                        >
-                                            Register
-                                        </Link>
+                                        {canLogin && (
+                                            <Link href={route('login')}
+                                                className="px-4 py-2 text-sm font-medium text-[#5D5B54] hover:text-[#1A1A1A] transition-colors">
+                                                Login
+                                            </Link>
+                                        )}
+                                        {canRegister && (
+                                            <Link href={route('register')}
+                                                className="px-4 py-2 text-sm font-medium text-white bg-[#16A34A] hover:bg-[#15803D] rounded-lg transition-colors">
+                                                Daftar Gratis
+                                            </Link>
+                                        )}
                                     </>
                                 )}
-                            </nav>
-                        </header>
+                            </div>
 
-                        <main className="mt-6">
-                            <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
-                                <a
-                                    href="https://laravel.com/docs"
-                                    id="docs-card"
-                                    className="flex flex-col items-start gap-6 overflow-hidden rounded-lg bg-white p-6 shadow-[0px_14px_34px_0px_rgba(0,0,0,0.08)] ring-1 ring-white/[0.05] transition duration-300 hover:text-black/70 hover:ring-black/20 focus:outline-none focus-visible:ring-[#FF2D20] md:row-span-3 lg:p-10 lg:pb-10 dark:bg-zinc-900 dark:ring-zinc-800 dark:hover:text-white/70 dark:hover:ring-zinc-700 dark:focus-visible:ring-[#FF2D20]"
-                                >
-                                    <div
-                                        id="screenshot-container"
-                                        className="relative flex w-full flex-1 items-stretch"
-                                    >
-                                        <img
-                                            src="https://laravel.com/assets/img/welcome/docs-light.svg"
-                                            alt="Laravel documentation screenshot"
-                                            className="aspect-video h-full w-full flex-1 rounded-[10px] object-cover object-top drop-shadow-[0px_4px_34px_rgba(0,0,0,0.06)] dark:hidden"
-                                            onError={handleImageError}
-                                        />
-                                        <img
-                                            src="https://laravel.com/assets/img/welcome/docs-dark.svg"
-                                            alt="Laravel documentation screenshot"
-                                            className="hidden aspect-video h-full w-full flex-1 rounded-[10px] object-cover object-top drop-shadow-[0px_4px_34px_rgba(0,0,0,0.25)] dark:block"
-                                        />
-                                        <div className="absolute -bottom-16 -left-16 h-40 w-[calc(100%+8rem)] bg-gradient-to-b from-transparent via-white to-white dark:via-zinc-900 dark:to-zinc-900"></div>
-                                    </div>
+                            {/* Hamburger */}
+                            <button onClick={() => setMobileOpen(!mobileOpen)}
+                                className="md:hidden p-2 rounded-md text-[#5D5B54] hover:bg-[#F6F5F4]">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                                    {mobileOpen
+                                        ? <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                        : <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />}
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
 
-                                    <div className="relative flex items-center gap-6 lg:items-end">
-                                        <div
-                                            id="docs-card-content"
-                                            className="flex items-start gap-6 lg:flex-col"
-                                        >
-                                            <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#FF2D20]/10 sm:size-16">
-                                                <svg
-                                                    className="size-5 sm:size-6"
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    fill="none"
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <path
-                                                        fill="#FF2D20"
-                                                        d="M23 4a1 1 0 0 0-1.447-.894L12.224 7.77a.5.5 0 0 1-.448 0L2.447 3.106A1 1 0 0 0 1 4v13.382a1.99 1.99 0 0 0 1.105 1.79l9.448 4.728c.14.065.293.1.447.1.154-.005.306-.04.447-.105l9.453-4.724a1.99 1.99 0 0 0 1.1-1.789V4ZM3 6.023a.25.25 0 0 1 .362-.223l7.5 3.75a.251.251 0 0 1 .138.223v11.2a.25.25 0 0 1-.362.224l-7.5-3.75a.25.25 0 0 1-.138-.22V6.023Zm18 11.2a.25.25 0 0 1-.138.224l-7.5 3.75a.249.249 0 0 1-.329-.099.249.249 0 0 1-.033-.12V9.772a.251.251 0 0 1 .138-.224l7.5-3.75a.25.25 0 0 1 .362.224v11.2Z"
-                                                    />
-                                                    <path
-                                                        fill="#FF2D20"
-                                                        d="m3.55 1.893 8 4.048a1.008 1.008 0 0 0 .9 0l8-4.048a1 1 0 0 0-.9-1.785l-7.322 3.706a.506.506 0 0 1-.452 0L4.454.108a1 1 0 0 0-.9 1.785H3.55Z"
-                                                    />
-                                                </svg>
-                                            </div>
+                    {/* Mobile Drawer */}
+                    {mobileOpen && (
+                        <div className="md:hidden border-t border-[#E5E3DF] bg-white px-4 py-4 space-y-1">
+                            {navLinks.map(l => (
+                                <a key={l.label} href={l.href} onClick={() => setMobileOpen(false)}
+                                    className="block px-3 py-2.5 text-sm text-[#5D5B54] hover:text-[#16A34A] hover:bg-[#DCFCE7] rounded-md transition-colors">
+                                    {l.label}
+                                </a>
+                            ))}
+                            <div className="pt-3 border-t border-[#E5E3DF] flex flex-col gap-2">
+                                {canLogin && (
+                                    <Link href={route('login')}
+                                        className="w-full text-center px-4 py-2.5 text-sm font-medium border border-[#E5E3DF] rounded-lg text-[#5D5B54] hover:border-[#16A34A] hover:text-[#16A34A] transition-colors">
+                                        Login
+                                    </Link>
+                                )}
+                                {canRegister && (
+                                    <Link href={route('register')}
+                                        className="w-full text-center px-4 py-2.5 text-sm font-medium text-white bg-[#16A34A] hover:bg-[#15803D] rounded-lg transition-colors">
+                                        Daftar Gratis
+                                    </Link>
+                                )}
+                            </div>
+                        </div>
+                    )}
+                </nav>
 
-                                            <div className="pt-3 sm:pt-5 lg:pt-0">
-                                                <h2 className="text-xl font-semibold text-black dark:text-white">
-                                                    Documentation
-                                                </h2>
+                {/* ══ HERO ═════════════════════════════════════════════════════ */}
+                <section id="beranda" className="relative overflow-hidden bg-[#FAFAF9] pt-16 pb-20 lg:pt-24 lg:pb-28">
+                    {/* Soft dot pattern background */}
+                    <div className="absolute inset-0 opacity-40"
+                        style={{ backgroundImage: 'radial-gradient(#D9F3E1 1px, transparent 1px)', backgroundSize: '24px 24px' }} />
+                    <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-16">
 
-                                                <p className="mt-4 text-sm/relaxed">
-                                                    Laravel has wonderful
-                                                    documentation covering every
-                                                    aspect of the framework.
-                                                    Whether you are a newcomer
-                                                    or have prior experience
-                                                    with Laravel, we recommend
-                                                    reading our documentation
-                                                    from beginning to end.
-                                                </p>
-                                            </div>
+                            {/* Left: Text */}
+                            <div className="flex-1 text-center lg:text-left max-w-xl mx-auto lg:mx-0">
+                                <div className="inline-flex items-center gap-2 bg-[#DCFCE7] text-[#16A34A] text-xs font-medium px-3 py-1.5 rounded-full mb-5">
+                                    <span className="w-1.5 h-1.5 bg-[#16A34A] rounded-full" />
+                                    Tabungan Digital Aman & Mudah
+                                </div>
+                                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-[#1A1A1A] leading-tight mb-4">
+                                    Kelola Tabungan Lebih{' '}
+                                    <span className="text-[#16A34A]">Rapi, Aman,</span>{' '}
+                                    dan Terukur
+                                </h1>
+                                <p className="text-[#5D5B54] text-base leading-relaxed mb-7">
+                                    Buat target tabungan, catat setoran, ajukan penarikan, dan pantau progres keuanganmu dalam satu dashboard digital yang simple dan modern.
+                                </p>
+                                <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start mb-6">
+                                    {canRegister && (
+                                        <Link href={route('register')}
+                                            className="px-6 py-3 text-sm font-semibold text-white bg-[#16A34A] hover:bg-[#15803D] rounded-lg transition-colors">
+                                            Mulai Menabung
+                                        </Link>
+                                    )}
+                                    {canLogin && (
+                                        <Link href={route('login')}
+                                            className="px-6 py-3 text-sm font-semibold text-[#1A1A1A] border border-[#E5E3DF] bg-white hover:border-[#16A34A] hover:text-[#16A34A] rounded-lg transition-colors">
+                                            Masuk ke Akun
+                                        </Link>
+                                    )}
+                                </div>
+                                <p className="text-xs text-[#787671]">Cocok untuk personal, pelajar, komunitas, koperasi kecil, dan sistem tabungan internal.</p>
+                            </div>
+
+                            {/* Right: Dashboard Mockup */}
+                            <div className="flex-1 w-full max-w-lg mx-auto lg:mx-0 relative">
+                                {/* Floating cards */}
+                                <div className="absolute -top-4 -left-4 z-10 bg-white border border-[#E5E3DF] rounded-xl shadow-md px-3 py-2 flex items-center gap-2">
+                                    <span className="w-2 h-2 bg-[#16A34A] rounded-full" />
+                                    <span className="text-xs font-medium text-[#1A1A1A]">Setoran Berhasil</span>
+                                </div>
+                                <div className="absolute -bottom-3 -right-2 z-10 bg-[#DCFCE7] border border-[#BBF7D0] rounded-xl shadow-md px-3 py-2 flex items-center gap-2">
+                                    <span className="text-xs font-semibold text-[#16A34A]">Target 75%</span>
+                                </div>
+                                <div className="absolute top-1/2 -right-6 z-10 bg-white border border-[#E5E3DF] rounded-xl shadow-md px-3 py-2 hidden lg:flex items-center gap-2">
+                                    <span className="text-green-600">🔒</span>
+                                    <span className="text-xs font-medium text-[#1A1A1A]">Saldo Aman</span>
+                                </div>
+
+                                {/* Main card */}
+                                <div className="bg-white border border-[#E5E3DF] rounded-2xl shadow-lg p-5 space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="text-xs text-[#787671]">Total Saldo</p>
+                                            <p className="text-2xl font-bold text-[#1A1A1A]">Rp 2.750.000</p>
                                         </div>
-
-                                        <svg
-                                            className="size-6 shrink-0 stroke-[#FF2D20]"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            strokeWidth="1.5"
-                                        >
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75"
-                                            />
-                                        </svg>
-                                    </div>
-                                </a>
-
-                                <a
-                                    href="https://laracasts.com"
-                                    className="flex items-start gap-4 rounded-lg bg-white p-6 shadow-[0px_14px_34px_0px_rgba(0,0,0,0.08)] ring-1 ring-white/[0.05] transition duration-300 hover:text-black/70 hover:ring-black/20 focus:outline-none focus-visible:ring-[#FF2D20] lg:pb-10 dark:bg-zinc-900 dark:ring-zinc-800 dark:hover:text-white/70 dark:hover:ring-zinc-700 dark:focus-visible:ring-[#FF2D20]"
-                                >
-                                    <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#FF2D20]/10 sm:size-16">
-                                        <svg
-                                            className="size-5 sm:size-6"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <g fill="#FF2D20">
-                                                <path d="M24 8.25a.5.5 0 0 0-.5-.5H.5a.5.5 0 0 0-.5.5v12a2.5 2.5 0 0 0 2.5 2.5h19a2.5 2.5 0 0 0 2.5-2.5v-12Zm-7.765 5.868a1.221 1.221 0 0 1 0 2.264l-6.626 2.776A1.153 1.153 0 0 1 8 18.123v-5.746a1.151 1.151 0 0 1 1.609-1.035l6.626 2.776ZM19.564 1.677a.25.25 0 0 0-.177-.427H15.6a.106.106 0 0 0-.072.03l-4.54 4.543a.25.25 0 0 0 .177.427h3.783c.027 0 .054-.01.073-.03l4.543-4.543ZM22.071 1.318a.047.047 0 0 0-.045.013l-4.492 4.492a.249.249 0 0 0 .038.385.25.25 0 0 0 .14.042h5.784a.5.5 0 0 0 .5-.5v-2a2.5 2.5 0 0 0-1.925-2.432ZM13.014 1.677a.25.25 0 0 0-.178-.427H9.101a.106.106 0 0 0-.073.03l-4.54 4.543a.25.25 0 0 0 .177.427H8.4a.106.106 0 0 0 .073-.03l4.54-4.543ZM6.513 1.677a.25.25 0 0 0-.177-.427H2.5A2.5 2.5 0 0 0 0 3.75v2a.5.5 0 0 0 .5.5h1.4a.106.106 0 0 0 .073-.03l4.54-4.543Z" />
-                                            </g>
-                                        </svg>
+                                        <div className="w-10 h-10 bg-[#DCFCE7] rounded-xl flex items-center justify-center text-[#16A34A]">
+                                            <IconWallet />
+                                        </div>
                                     </div>
 
-                                    <div className="pt-3 sm:pt-5">
-                                        <h2 className="text-xl font-semibold text-black dark:text-white">
-                                            Laracasts
-                                        </h2>
-
-                                        <p className="mt-4 text-sm/relaxed">
-                                            Laracasts offers thousands of video
-                                            tutorials on Laravel, PHP, and
-                                            JavaScript development. Check them
-                                            out, see for yourself, and massively
-                                            level up your development skills in
-                                            the process.
-                                        </p>
+                                    {/* Progress */}
+                                    <div>
+                                        <div className="flex justify-between text-xs text-[#787671] mb-1.5">
+                                            <span>Target Laptop — Rp 5.000.000</span>
+                                            <span className="font-medium text-[#16A34A]">55%</span>
+                                        </div>
+                                        <div className="h-2 bg-[#F6F5F4] rounded-full overflow-hidden">
+                                            <div className="h-full w-[55%] bg-gradient-to-r from-[#16A34A] to-[#4ADE80] rounded-full" />
+                                        </div>
                                     </div>
 
-                                    <svg
-                                        className="size-6 shrink-0 self-center stroke-[#FF2D20]"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        strokeWidth="1.5"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75"
-                                        />
-                                    </svg>
-                                </a>
-
-                                <a
-                                    href="https://laravel-news.com"
-                                    className="flex items-start gap-4 rounded-lg bg-white p-6 shadow-[0px_14px_34px_0px_rgba(0,0,0,0.08)] ring-1 ring-white/[0.05] transition duration-300 hover:text-black/70 hover:ring-black/20 focus:outline-none focus-visible:ring-[#FF2D20] lg:pb-10 dark:bg-zinc-900 dark:ring-zinc-800 dark:hover:text-white/70 dark:hover:ring-zinc-700 dark:focus-visible:ring-[#FF2D20]"
-                                >
-                                    <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#FF2D20]/10 sm:size-16">
-                                        <svg
-                                            className="size-5 sm:size-6"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <g fill="#FF2D20">
-                                                <path d="M8.75 4.5H5.5c-.69 0-1.25.56-1.25 1.25v4.75c0 .69.56 1.25 1.25 1.25h3.25c.69 0 1.25-.56 1.25-1.25V5.75c0-.69-.56-1.25-1.25-1.25Z" />
-                                                <path d="M24 10a3 3 0 0 0-3-3h-2V2.5a2 2 0 0 0-2-2H2a2 2 0 0 0-2 2V20a3.5 3.5 0 0 0 3.5 3.5h17A3.5 3.5 0 0 0 24 20V10ZM3.5 21.5A1.5 1.5 0 0 1 2 20V3a.5.5 0 0 1 .5-.5h14a.5.5 0 0 1 .5.5v17c0 .295.037.588.11.874a.5.5 0 0 1-.484.625L3.5 21.5ZM22 20a1.5 1.5 0 1 1-3 0V9.5a.5.5 0 0 1 .5-.5H21a1 1 0 0 1 1 1v10Z" />
-                                                <path d="M12.751 6.047h2a.75.75 0 0 1 .75.75v.5a.75.75 0 0 1-.75.75h-2A.75.75 0 0 1 12 7.3v-.5a.75.75 0 0 1 .751-.753ZM12.751 10.047h2a.75.75 0 0 1 .75.75v.5a.75.75 0 0 1-.75.75h-2A.75.75 0 0 1 12 11.3v-.5a.75.75 0 0 1 .751-.753ZM4.751 14.047h10a.75.75 0 0 1 .75.75v.5a.75.75 0 0 1-.75.75h-10A.75.75 0 0 1 4 15.3v-.5a.75.75 0 0 1 .751-.753ZM4.75 18.047h7.5a.75.75 0 0 1 .75.75v.5a.75.75 0 0 1-.75.75h-7.5A.75.75 0 0 1 4 19.3v-.5a.75.75 0 0 1 .75-.753Z" />
-                                            </g>
-                                        </svg>
+                                    {/* Mini bar chart */}
+                                    <div className="bg-[#FAFAF9] rounded-xl p-3 h-24">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <BarChart data={barData.slice(0, 4)} barSize={10}>
+                                                <Bar dataKey="setoran" fill="#16A34A" radius={[3, 3, 0, 0]} />
+                                                <Bar dataKey="penarikan" fill="#DCFCE7" radius={[3, 3, 0, 0]} />
+                                            </BarChart>
+                                        </ResponsiveContainer>
                                     </div>
 
-                                    <div className="pt-3 sm:pt-5">
-                                        <h2 className="text-xl font-semibold text-black dark:text-white">
-                                            Laravel News
-                                        </h2>
-
-                                        <p className="mt-4 text-sm/relaxed">
-                                            Laravel News is a community driven
-                                            portal and newsletter aggregating
-                                            all of the latest and most important
-                                            news in the Laravel ecosystem,
-                                            including new package releases and
-                                            tutorials.
-                                        </p>
-                                    </div>
-
-                                    <svg
-                                        className="size-6 shrink-0 self-center stroke-[#FF2D20]"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                        strokeWidth="1.5"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            d="M4.5 12h15m0 0l-6.75-6.75M19.5 12l-6.75 6.75"
-                                        />
-                                    </svg>
-                                </a>
-
-                                <div className="flex items-start gap-4 rounded-lg bg-white p-6 shadow-[0px_14px_34px_0px_rgba(0,0,0,0.08)] ring-1 ring-white/[0.05] lg:pb-10 dark:bg-zinc-900 dark:ring-zinc-800">
-                                    <div className="flex size-12 shrink-0 items-center justify-center rounded-full bg-[#FF2D20]/10 sm:size-16">
-                                        <svg
-                                            className="size-5 sm:size-6"
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <g fill="#FF2D20">
-                                                <path d="M16.597 12.635a.247.247 0 0 0-.08-.237 2.234 2.234 0 0 1-.769-1.68c.001-.195.03-.39.084-.578a.25.25 0 0 0-.09-.267 8.8 8.8 0 0 0-4.826-1.66.25.25 0 0 0-.268.181 2.5 2.5 0 0 1-2.4 1.824.045.045 0 0 0-.045.037 12.255 12.255 0 0 0-.093 3.86.251.251 0 0 0 .208.214c2.22.366 4.367 1.08 6.362 2.118a.252.252 0 0 0 .32-.079 10.09 10.09 0 0 0 1.597-3.733ZM13.616 17.968a.25.25 0 0 0-.063-.407A19.697 19.697 0 0 0 8.91 15.98a.25.25 0 0 0-.287.325c.151.455.334.898.548 1.328.437.827.981 1.594 1.619 2.28a.249.249 0 0 0 .32.044 29.13 29.13 0 0 0 2.506-1.99ZM6.303 14.105a.25.25 0 0 0 .265-.274 13.048 13.048 0 0 1 .205-4.045.062.062 0 0 0-.022-.07 2.5 2.5 0 0 1-.777-.982.25.25 0 0 0-.271-.149 11 11 0 0 0-5.6 2.815.255.255 0 0 0-.075.163c-.008.135-.02.27-.02.406.002.8.084 1.598.246 2.381a.25.25 0 0 0 .303.193 19.924 19.924 0 0 1 5.746-.438ZM9.228 20.914a.25.25 0 0 0 .1-.393 11.53 11.53 0 0 1-1.5-2.22 12.238 12.238 0 0 1-.91-2.465.248.248 0 0 0-.22-.187 18.876 18.876 0 0 0-5.69.33.249.249 0 0 0-.179.336c.838 2.142 2.272 4 4.132 5.353a.254.254 0 0 0 .15.048c1.41-.01 2.807-.282 4.117-.802ZM18.93 12.957l-.005-.008a.25.25 0 0 0-.268-.082 2.21 2.21 0 0 1-.41.081.25.25 0 0 0-.217.2c-.582 2.66-2.127 5.35-5.75 7.843a.248.248 0 0 0-.09.299.25.25 0 0 0 .065.091 28.703 28.703 0 0 0 2.662 2.12.246.246 0 0 0 .209.037c2.579-.701 4.85-2.242 6.456-4.378a.25.25 0 0 0 .048-.189 13.51 13.51 0 0 0-2.7-6.014ZM5.702 7.058a.254.254 0 0 0 .2-.165A2.488 2.488 0 0 1 7.98 5.245a.093.093 0 0 0 .078-.062 19.734 19.734 0 0 1 3.055-4.74.25.25 0 0 0-.21-.41 12.009 12.009 0 0 0-10.4 8.558.25.25 0 0 0 .373.281 12.912 12.912 0 0 1 4.826-1.814ZM10.773 22.052a.25.25 0 0 0-.28-.046c-.758.356-1.55.635-2.365.833a.25.25 0 0 0-.022.48c1.252.43 2.568.65 3.893.65.1 0 .2 0 .3-.008a.25.25 0 0 0 .147-.444c-.526-.424-1.1-.917-1.673-1.465ZM18.744 8.436a.249.249 0 0 0 .15.228 2.246 2.246 0 0 1 1.352 2.054c0 .337-.08.67-.23.972a.25.25 0 0 0 .042.28l.007.009a15.016 15.016 0 0 1 2.52 4.6.25.25 0 0 0 .37.132.25.25 0 0 0 .096-.114c.623-1.464.944-3.039.945-4.63a12.005 12.005 0 0 0-5.78-10.258.25.25 0 0 0-.373.274c.547 2.109.85 4.274.901 6.453ZM9.61 5.38a.25.25 0 0 0 .08.31c.34.24.616.561.8.935a.25.25 0 0 0 .3.127.631.631 0 0 1 .206-.034c2.054.078 4.036.772 5.69 1.991a.251.251 0 0 0 .267.024c.046-.024.093-.047.141-.067a.25.25 0 0 0 .151-.23A29.98 29.98 0 0 0 15.957.764a.25.25 0 0 0-.16-.164 11.924 11.924 0 0 0-2.21-.518.252.252 0 0 0-.215.076A22.456 22.456 0 0 0 9.61 5.38Z" />
-                                            </g>
-                                        </svg>
-                                    </div>
-
-                                    <div className="pt-3 sm:pt-5">
-                                        <h2 className="text-xl font-semibold text-black dark:text-white">
-                                            Vibrant Ecosystem
-                                        </h2>
-
-                                        <p className="mt-4 text-sm/relaxed">
-                                            Laravel's robust library of
-                                            first-party tools and libraries,
-                                            such as{' '}
-                                            <a
-                                                href="https://forge.laravel.com"
-                                                className="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white dark:focus-visible:ring-[#FF2D20]"
-                                            >
-                                                Forge
-                                            </a>
-                                            ,{' '}
-                                            <a
-                                                href="https://vapor.laravel.com"
-                                                className="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                            >
-                                                Vapor
-                                            </a>
-                                            ,{' '}
-                                            <a
-                                                href="https://nova.laravel.com"
-                                                className="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                            >
-                                                Nova
-                                            </a>
-                                            ,{' '}
-                                            <a
-                                                href="https://envoyer.io"
-                                                className="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                            >
-                                                Envoyer
-                                            </a>
-                                            , and{' '}
-                                            <a
-                                                href="https://herd.laravel.com"
-                                                className="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                            >
-                                                Herd
-                                            </a>{' '}
-                                            help you take your projects to the
-                                            next level. Pair them with powerful
-                                            open source libraries like{' '}
-                                            <a
-                                                href="https://laravel.com/docs/billing"
-                                                className="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                            >
-                                                Cashier
-                                            </a>
-                                            ,{' '}
-                                            <a
-                                                href="https://laravel.com/docs/dusk"
-                                                className="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                            >
-                                                Dusk
-                                            </a>
-                                            ,{' '}
-                                            <a
-                                                href="https://laravel.com/docs/broadcasting"
-                                                className="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                            >
-                                                Echo
-                                            </a>
-                                            ,{' '}
-                                            <a
-                                                href="https://laravel.com/docs/horizon"
-                                                className="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                            >
-                                                Horizon
-                                            </a>
-                                            ,{' '}
-                                            <a
-                                                href="https://laravel.com/docs/sanctum"
-                                                className="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                            >
-                                                Sanctum
-                                            </a>
-                                            ,{' '}
-                                            <a
-                                                href="https://laravel.com/docs/telescope"
-                                                className="rounded-sm underline hover:text-black focus:outline-none focus-visible:ring-1 focus-visible:ring-[#FF2D20] dark:hover:text-white"
-                                            >
-                                                Telescope
-                                            </a>
-                                            , and more.
-                                        </p>
+                                    {/* Transactions */}
+                                    <div className="space-y-2">
+                                        {[
+                                            { label: 'Setoran — Dana Darurat', status: 'approved', amt: '+Rp 200.000' },
+                                            { label: 'Setoran — Liburan', status: 'pending', amt: '+Rp 150.000' },
+                                        ].map((t, i) => (
+                                            <div key={i} className="flex items-center justify-between py-1.5 border-b border-[#F6F5F4] last:border-0">
+                                                <div>
+                                                    <p className="text-xs font-medium text-[#1A1A1A]">{t.label}</p>
+                                                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${t.status === 'approved' ? 'bg-[#DCFCE7] text-[#16A34A]' : 'bg-yellow-50 text-yellow-600'}`}>
+                                                        {t.status === 'approved' ? 'Approved' : 'Pending'}
+                                                    </span>
+                                                </div>
+                                                <span className="text-xs font-semibold text-[#16A34A]">{t.amt}</span>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             </div>
-                        </main>
-
-                        <footer className="py-16 text-center text-sm text-black dark:text-white/70">
-                            Laravel v{laravelVersion} (PHP v{phpVersion})
-                        </footer>
+                        </div>
                     </div>
-                </div>
+                </section>
+
+                {/* ══ BENEFIT STRIP ═══════════════════════════════════════════ */}
+                <section className="bg-white border-y border-[#E5E3DF] py-10">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {[
+                                { icon: '🎯', title: 'Target Jelas', desc: 'Buat target tabungan dengan nominal dan deadline.' },
+                                { icon: '📋', title: 'Transaksi Tercatat', desc: 'Setoran dan penarikan tersimpan rapi.' },
+                                { icon: '✅', title: 'Approval Admin', desc: 'Setiap transaksi bisa diverifikasi agar lebih aman.' },
+                                { icon: '📊', title: 'Laporan Lengkap', desc: 'Cetak buku tabungan dan export laporan transaksi.' },
+                            ].map((b, i) => (
+                                <div key={i} className="bg-white border border-[#E5E3DF] rounded-xl p-5 flex gap-4 items-start hover:shadow-sm transition-shadow">
+                                    <div className="w-9 h-9 bg-[#DCFCE7] rounded-lg flex items-center justify-center text-lg flex-shrink-0">{b.icon}</div>
+                                    <div>
+                                        <p className="font-semibold text-sm text-[#1A1A1A] mb-0.5">{b.title}</p>
+                                        <p className="text-xs text-[#787671] leading-relaxed">{b.desc}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+
+                {/* ══ FITUR UTAMA ══════════════════════════════════════════════ */}
+                <section id="fitur" className="py-20 bg-[#FAFAF9]">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="text-center mb-12">
+                            <h2 className="text-2xl sm:text-3xl font-bold text-[#1A1A1A] mb-3">Semua Kebutuhan Tabungan dalam Satu Tempat</h2>
+                            <p className="text-[#5D5B54] max-w-xl mx-auto text-sm leading-relaxed">Mulai dari membuat target, mengajukan setoran, verifikasi transaksi, sampai mencetak buku tabungan.</p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                            {[
+                                {
+                                    bg: 'bg-[#D9F3E1]', icon: '🎯', title: 'Target Tabungan',
+                                    desc: 'Buat target seperti beli laptop, dana darurat, atau tabungan sekolah. Pantau progresnya dengan progress bar yang intuitif.',
+                                    tag: 'Progress Bar',
+                                },
+                                {
+                                    bg: 'bg-[#FEF9C3]', icon: '💰', title: 'Setoran Digital',
+                                    desc: 'Ajukan setoran dengan catatan dan bukti. Status awal pending hingga diverifikasi admin.',
+                                    tag: 'Pending Review',
+                                },
+                                {
+                                    bg: 'bg-[#EFF6FF]', icon: '🏧', title: 'Penarikan Tabungan',
+                                    desc: 'Ajukan penarikan dengan validasi saldo otomatis. Admin bisa approve atau reject sesuai kebijakan.',
+                                    tag: 'Validasi Saldo',
+                                },
+                                {
+                                    bg: 'bg-[#F0FDF4]', icon: '📈', title: 'Dashboard Real-time',
+                                    desc: 'Lihat saldo, target aktif, transaksi pending, dan chart pergerakan saldo secara real-time.',
+                                    tag: 'Live Chart',
+                                },
+                                {
+                                    bg: 'bg-[#FFF7ED]', icon: '📒', title: 'Buku Tabungan',
+                                    desc: 'Cetak buku tabungan dalam format laporan yang rapi. Tersedia untuk user maupun admin.',
+                                    tag: 'Cetak PDF',
+                                },
+                                {
+                                    bg: 'bg-[#FDF4FF]', icon: '🔍', title: 'Activity Log',
+                                    desc: 'Semua aktivitas penting tercatat secara otomatis untuk keperluan audit dan keamanan sistem.',
+                                    tag: 'Audit Trail',
+                                },
+                            ].map((f, i) => (
+                                <div key={i} className="bg-white border border-[#E5E3DF] rounded-2xl p-5 hover:shadow-md transition-shadow group">
+                                    <div className={`w-10 h-10 ${f.bg} rounded-xl flex items-center justify-center text-xl mb-4`}>{f.icon}</div>
+                                    <h3 className="font-semibold text-[#1A1A1A] mb-2">{f.title}</h3>
+                                    <p className="text-sm text-[#5D5B54] leading-relaxed mb-3">{f.desc}</p>
+                                    <span className="inline-block bg-[#F6F5F4] text-[#787671] text-xs px-2.5 py-1 rounded-md">{f.tag}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+
+                {/* ══ CARA KERJA ═══════════════════════════════════════════════ */}
+                <section id="cara-kerja" className="py-20 bg-white">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="text-center mb-14">
+                            <h2 className="text-2xl sm:text-3xl font-bold text-[#1A1A1A] mb-3">Cara Kerja Tabungan Digital</h2>
+                            <p className="text-[#5D5B54] text-sm">Empat langkah mudah untuk mulai menabung secara digital.</p>
+                        </div>
+
+                        {/* Desktop: horizontal */}
+                        <div className="hidden lg:flex items-start gap-0 relative">
+                            {/* connector line */}
+                            <div className="absolute top-6 left-[12.5%] right-[12.5%] h-px bg-[#E5E3DF] z-0" />
+                            {[
+                                { num: '1', title: 'Buat Target', desc: 'User membuat target tabungan sesuai kebutuhan seperti nominal, nama, dan deadline.' },
+                                { num: '2', title: 'Ajukan Setoran', desc: 'User menginput setoran dan menunggu verifikasi dari admin sistem.' },
+                                { num: '3', title: 'Admin Verifikasi', desc: 'Admin menyetujui atau menolak transaksi berdasarkan data yang masuk.' },
+                                { num: '4', title: 'Pantau & Cetak', desc: 'User bisa melihat progres, riwayat transaksi, dan mencetak buku tabungan.' },
+                            ].map((s, i) => (
+                                <div key={i} className="flex-1 flex flex-col items-center text-center relative z-10 px-4">
+                                    <div className="w-12 h-12 bg-[#16A34A] text-white rounded-full flex items-center justify-center font-bold text-lg mb-4 shadow-md">
+                                        {s.num}
+                                    </div>
+                                    <div className="bg-white border border-[#E5E3DF] rounded-xl p-4 w-full">
+                                        <h3 className="font-semibold text-[#1A1A1A] mb-2">{s.title}</h3>
+                                        <p className="text-xs text-[#5D5B54] leading-relaxed">{s.desc}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Mobile: vertical */}
+                        <div className="lg:hidden relative pl-8">
+                            <div className="absolute left-4 top-0 bottom-0 w-px bg-[#E5E3DF]" />
+                            {[
+                                { num: '1', title: 'Buat Target', desc: 'User membuat target tabungan sesuai kebutuhan.' },
+                                { num: '2', title: 'Ajukan Setoran', desc: 'User menginput setoran dan menunggu verifikasi admin.' },
+                                { num: '3', title: 'Admin Verifikasi', desc: 'Admin menyetujui atau menolak transaksi berdasarkan data.' },
+                                { num: '4', title: 'Pantau & Cetak', desc: 'User melihat progres dan mencetak buku tabungan.' },
+                            ].map((s, i) => (
+                                <div key={i} className="relative mb-6 last:mb-0">
+                                    <div className="absolute -left-8 w-8 h-8 bg-[#16A34A] text-white rounded-full flex items-center justify-center font-bold text-sm">
+                                        {s.num}
+                                    </div>
+                                    <div className="bg-white border border-[#E5E3DF] rounded-xl p-4">
+                                        <h3 className="font-semibold text-[#1A1A1A] mb-1">{s.title}</h3>
+                                        <p className="text-sm text-[#5D5B54]">{s.desc}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+
+                {/* ══ PREVIEW DASHBOARD / CHART ════════════════════════════════ */}
+                <section className="py-20 bg-[#F6F5F4]">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="text-center mb-12">
+                            <h2 className="text-2xl sm:text-3xl font-bold text-[#1A1A1A] mb-3">Pantau Progres dengan Dashboard Visual</h2>
+                            <p className="text-[#5D5B54] text-sm max-w-md mx-auto">Lihat perkembangan saldo, transaksi, dan target tabungan dengan chart yang mudah dipahami.</p>
+                        </div>
+
+                        {/* Summary Cards */}
+                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                            {[
+                                { label: 'Total Saldo', val: 'Rp 2.750.000', icon: '💳', color: 'text-[#16A34A]' },
+                                { label: 'Target Aktif', val: '5 Target', icon: '🎯', color: 'text-blue-600' },
+                                { label: 'Pending Approval', val: '3 Transaksi', icon: '⏳', color: 'text-yellow-600' },
+                                { label: 'Saldo Bulan Ini', val: 'Rp 520.000', icon: '📅', color: 'text-purple-600' },
+                            ].map((c, i) => (
+                                <div key={i} className="bg-white border border-[#E5E3DF] rounded-xl p-4">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <span className="text-lg">{c.icon}</span>
+                                        <span className="text-xs text-[#787671]">{c.label}</span>
+                                    </div>
+                                    <p className={`font-bold text-sm sm:text-base ${c.color}`}>{c.val}</p>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Charts */}
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                            {/* Bar Chart */}
+                            <div className="lg:col-span-2 bg-white border border-[#E5E3DF] rounded-2xl p-5">
+                                <p className="text-sm font-semibold text-[#1A1A1A] mb-4">Setoran vs Penarikan</p>
+                                <ResponsiveContainer width="100%" height={200}>
+                                    <BarChart data={barData} barSize={14}>
+                                        <XAxis dataKey="bulan" tick={{ fontSize: 11, fill: '#787671' }} axisLine={false} tickLine={false} />
+                                        <YAxis tick={{ fontSize: 10, fill: '#787671' }} axisLine={false} tickLine={false} tickFormatter={v => `${v / 1000}k`} />
+                                        <Tooltip formatter={(v) => fmtRupiah(v)} />
+                                        <Bar dataKey="setoran" fill="#16A34A" radius={[4, 4, 0, 0]} name="Setoran" />
+                                        <Bar dataKey="penarikan" fill="#DCFCE7" radius={[4, 4, 0, 0]} name="Penarikan" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+
+                            {/* Pie Chart */}
+                            <div className="bg-white border border-[#E5E3DF] rounded-2xl p-5">
+                                <p className="text-sm font-semibold text-[#1A1A1A] mb-4">Status Target</p>
+                                <ResponsiveContainer width="100%" height={160}>
+                                    <PieChart>
+                                        <Pie data={pieData} cx="50%" cy="50%" innerRadius={45} outerRadius={70} paddingAngle={3} dataKey="value">
+                                            {pieData.map((_, index) => (
+                                                <Cell key={index} fill={PIE_COLORS[index]} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                                <div className="mt-2 space-y-1">
+                                    {pieData.map((d, i) => (
+                                        <div key={i} className="flex items-center gap-2 text-xs text-[#5D5B54]">
+                                            <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: PIE_COLORS[i] }} />
+                                            {d.name}: {d.value}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Line Chart */}
+                            <div className="lg:col-span-3 bg-white border border-[#E5E3DF] rounded-2xl p-5">
+                                <p className="text-sm font-semibold text-[#1A1A1A] mb-4">Trend Saldo 6 Bulan</p>
+                                <ResponsiveContainer width="100%" height={160}>
+                                    <LineChart data={lineData}>
+                                        <XAxis dataKey="bulan" tick={{ fontSize: 11, fill: '#787671' }} axisLine={false} tickLine={false} />
+                                        <YAxis tick={{ fontSize: 10, fill: '#787671' }} axisLine={false} tickLine={false} tickFormatter={v => `${v / 1000}k`} />
+                                        <Tooltip formatter={(v) => fmtRupiah(v)} />
+                                        <Line type="monotone" dataKey="saldo" stroke="#16A34A" strokeWidth={2.5} dot={{ fill: '#16A34A', r: 3 }} name="Saldo" />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* ══ KEAMANAN ═════════════════════════════════════════════════ */}
+                <section id="keamanan" className="py-20 bg-[#F0FDF4]">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="text-center mb-12">
+                            <h2 className="text-2xl sm:text-3xl font-bold text-[#1A1A1A] mb-3">Lebih Aman dengan Sistem Verifikasi</h2>
+                            <p className="text-[#5D5B54] text-sm max-w-md mx-auto">Setiap transaksi penting tidak langsung mengubah saldo sebelum melewati proses validasi.</p>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {[
+                                { icon: '🛡️', title: 'Approval Admin', desc: 'Setoran dan penarikan bisa diverifikasi admin sebelum mengubah saldo.' },
+                                { icon: '🔄', title: 'Status Transaksi', desc: 'Pantau status transaksi: pending, approved, atau rejected secara real-time.' },
+                                { icon: '📜', title: 'Activity Log', desc: 'Semua aktivitas penting tercatat otomatis untuk keperluan audit.' },
+                                { icon: '🔔', title: 'Notifikasi', desc: 'User mendapat informasi ketika transaksi diproses oleh admin.' },
+                                { icon: '⚖️', title: 'Validasi Saldo', desc: 'Penarikan tidak bisa melebihi saldo tersedia. Sistem memvalidasi otomatis.' },
+                                { icon: '🖨️', title: 'Laporan Tercetak', desc: 'Buku tabungan bisa dicetak sebagai bukti transaksi yang sah.' },
+                            ].map((s, i) => (
+                                <div key={i} className="bg-white border border-[#BBF7D0] rounded-xl p-5 flex gap-4 items-start">
+                                    <div className="w-9 h-9 bg-[#DCFCE7] rounded-lg flex items-center justify-center text-lg flex-shrink-0">{s.icon}</div>
+                                    <div>
+                                        <h3 className="font-semibold text-[#1A1A1A] text-sm mb-1">{s.title}</h3>
+                                        <p className="text-xs text-[#5D5B54] leading-relaxed">{s.desc}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+
+                {/* ══ USER & ADMIN ROLE ════════════════════════════════════════ */}
+                <section className="py-20 bg-white">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="text-center mb-12">
+                            <h2 className="text-2xl sm:text-3xl font-bold text-[#1A1A1A] mb-3">Dibuat untuk User dan Admin</h2>
+                            <p className="text-[#5D5B54] text-sm">Dua peran dengan akses dan fitur yang berbeda.</p>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+                            {/* User Card */}
+                            <div className="bg-[#D9F3E1] border border-[#BBF7D0] rounded-2xl p-6">
+                                <div className="flex items-center gap-3 mb-5">
+                                    <div className="w-10 h-10 bg-[#16A34A] rounded-xl flex items-center justify-center text-white text-xl">👤</div>
+                                    <h3 className="text-lg font-bold text-[#1A1A1A]">User</h3>
+                                </div>
+                                <ul className="space-y-2.5">
+                                    {['Membuat target tabungan', 'Mengajukan setoran', 'Mengajukan penarikan', 'Melihat riwayat transaksi', 'Melihat notifikasi', 'Mencetak buku tabungan sendiri'].map((item, i) => (
+                                        <li key={i} className="flex items-center gap-2 text-sm text-[#1A1A1A]">
+                                            <IconCheck />{item}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+
+                            {/* Admin Card */}
+                            <div className="bg-white border-2 border-[#16A34A] rounded-2xl p-6">
+                                <div className="flex items-center gap-3 mb-5">
+                                    <div className="w-10 h-10 bg-[#16A34A] rounded-xl flex items-center justify-center text-white text-xl">⚙️</div>
+                                    <h3 className="text-lg font-bold text-[#1A1A1A]">Admin</h3>
+                                </div>
+                                <ul className="space-y-2.5">
+                                    {['Verifikasi setoran', 'Verifikasi penarikan', 'Input setoran manual', 'Kelola data user', 'Melihat laporan transaksi', 'Mencetak buku tabungan user', 'Melihat activity log'].map((item, i) => (
+                                        <li key={i} className="flex items-center gap-2 text-sm text-[#1A1A1A]">
+                                            <IconCheck />{item}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* ══ USE CASE ═════════════════════════════════════════════════ */}
+                <section className="py-20 bg-[#FAFAF9]">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="text-center mb-12">
+                            <h2 className="text-2xl sm:text-3xl font-bold text-[#1A1A1A] mb-3">Cocok untuk Berbagai Kebutuhan</h2>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                            {[
+                                { icon: '🧑', title: 'Tabungan Pribadi', desc: 'Kelola tabungan personal dengan target yang jelas dan terstruktur.', tag: 'Personal' },
+                                { icon: '🎓', title: 'Tabungan Pelajar', desc: 'Cocok untuk pelajar yang ingin belajar mengelola keuangan sedini mungkin.', tag: 'Pelajar' },
+                                { icon: '👥', title: 'Kas Komunitas', desc: 'Transparansi pengelolaan kas komunitas kecil dengan sistem approval.', tag: 'Komunitas' },
+                                { icon: '🏢', title: 'Koperasi Internal', desc: 'Solusi tabungan internal koperasi dengan verifikasi dan laporan lengkap.', tag: 'Koperasi' },
+                            ].map((u, i) => (
+                                <div key={i} className="bg-white border border-[#E5E3DF] rounded-2xl p-5 hover:shadow-md transition-shadow">
+                                    <div className="w-10 h-10 bg-[#DCFCE7] rounded-xl flex items-center justify-center text-xl mb-4">{u.icon}</div>
+                                    <h3 className="font-semibold text-[#1A1A1A] mb-2">{u.title}</h3>
+                                    <p className="text-sm text-[#5D5B54] mb-3 leading-relaxed">{u.desc}</p>
+                                    <span className="inline-block bg-[#DCFCE7] text-[#16A34A] text-xs font-medium px-2.5 py-1 rounded-full">{u.tag}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+
+                {/* ══ FAQ ══════════════════════════════════════════════════════ */}
+                <section id="faq" className="py-20 bg-white">
+                    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="text-center mb-12">
+                            <h2 className="text-2xl sm:text-3xl font-bold text-[#1A1A1A] mb-3">Pertanyaan yang Sering Diajukan</h2>
+                        </div>
+                        <div className="bg-white border border-[#E5E3DF] rounded-2xl px-6 py-2 divide-y divide-[#F6F5F4]">
+                            {FAQ_ITEMS.map((item, i) => <FAQItem key={i} {...item} />)}
+                        </div>
+                    </div>
+                </section>
+
+                {/* ══ CTA AKHIR ════════════════════════════════════════════════ */}
+                <section className="py-16 bg-[#FAFAF9]">
+                    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="bg-[#16A34A] rounded-2xl p-10 text-center text-white relative overflow-hidden">
+                            {/* soft bg dots */}
+                            <div className="absolute inset-0 opacity-10"
+                                style={{ backgroundImage: 'radial-gradient(white 1.5px, transparent 1.5px)', backgroundSize: '20px 20px' }} />
+                            <div className="relative">
+                                <h2 className="text-2xl sm:text-3xl font-bold mb-3">Mulai Kelola Tabungan dengan Lebih Rapi</h2>
+                                <p className="text-green-100 text-sm max-w-md mx-auto mb-8">Buat target, catat transaksi, dan pantau progres tabunganmu dari satu dashboard digital.</p>
+                                <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                                    {canRegister && (
+                                        <Link href={route('register')}
+                                            className="px-7 py-3 text-sm font-semibold text-[#16A34A] bg-white rounded-lg hover:bg-green-50 transition-colors">
+                                            Daftar Sekarang
+                                        </Link>
+                                    )}
+                                    {canLogin && (
+                                        <Link href={route('login')}
+                                            className="px-7 py-3 text-sm font-semibold text-white border border-white/40 rounded-lg hover:bg-white/10 transition-colors">
+                                            Login
+                                        </Link>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* ══ FOOTER ═══════════════════════════════════════════════════ */}
+                <footer className="bg-white border-t border-[#E5E3DF] py-12">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+                            {/* Brand */}
+                            <div>
+                                <div className="flex items-center gap-2.5 mb-3">
+                                    <div className="w-8 h-8 bg-[#DCFCE7] rounded-lg flex items-center justify-center text-[#16A34A]">
+                                        <IconWallet />
+                                    </div>
+                                    <span className="font-semibold text-[#1A1A1A]">Tabungan Digital</span>
+                                </div>
+                                <p className="text-xs text-[#787671] leading-relaxed max-w-xs">Platform pencatatan tabungan digital yang membantu user dan admin mengelola transaksi dengan lebih aman dan rapi.</p>
+                            </div>
+
+                            {/* Nav Links */}
+                            <div>
+                                <p className="text-xs font-semibold text-[#1A1A1A] uppercase tracking-wide mb-3">Menu</p>
+                                <ul className="space-y-2">
+                                    {['Beranda', 'Fitur', 'Cara Kerja', 'Keamanan', 'FAQ'].map(l => (
+                                        <li key={l}><a href={`#${l.toLowerCase().replace(' ', '-')}`} className="text-sm text-[#787671] hover:text-[#16A34A] transition-colors">{l}</a></li>
+                                    ))}
+                                </ul>
+                            </div>
+
+                            {/* Account */}
+                            <div>
+                                <p className="text-xs font-semibold text-[#1A1A1A] uppercase tracking-wide mb-3">Akun</p>
+                                <ul className="space-y-2">
+                                    {canLogin && (
+                                        <li><Link href={route('login')} className="text-sm text-[#787671] hover:text-[#16A34A] transition-colors">Login</Link></li>
+                                    )}
+                                    {canRegister && (
+                                        <li><Link href={route('register')} className="text-sm text-[#787671] hover:text-[#16A34A] transition-colors">Register</Link></li>
+                                    )}
+                                </ul>
+                            </div>
+                        </div>
+                        <div className="border-t border-[#E5E3DF] pt-6 text-center">
+                            <p className="text-xs text-[#787671]">© 2026 Tabungan Digital. All rights reserved.</p>
+                        </div>
+                    </div>
+                </footer>
+
             </div>
         </>
     );

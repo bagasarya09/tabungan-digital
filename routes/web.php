@@ -12,6 +12,11 @@ use App\Http\Controllers\Admin\DepositVerificationController;
 use App\Http\Controllers\Admin\ManualDepositController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
 use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\ActivityLogController;
+use App\Http\Controllers\User\NotificationController;
+use App\Http\Controllers\Admin\WithdrawVerificationController;
+use App\Http\Controllers\User\PassbookController as UserPassbookController;
+use App\Http\Controllers\Admin\PassbookController as AdminPassbookController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -42,11 +47,31 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('saving-goals.destroy');
 
     Route::get('/transactions', [TransactionController::class, 'index'])
-        ->name('transactions.index');
+    ->name('transactions.index');
 
     Route::post('/transactions', [TransactionController::class, 'store'])
         ->name('transactions.store');
-});
+
+    Route::post('/transactions/withdraw', [TransactionController::class, 'withdraw'])
+        ->name('transactions.withdraw');
+
+    
+    Route::get('/notifications', [NotificationController::class, 'index'])
+    ->name('notifications.index');
+
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])
+        ->name('notifications.read');
+
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllAsRead'])
+        ->name('notifications.read-all');
+
+    Route::get('/passbook', [UserPassbookController::class, 'index'])
+        ->name('passbook.index');
+
+    Route::get('/passbook/pdf', [UserPassbookController::class, 'pdf'])
+        ->name('passbook.pdf');
+        
+    });
 
     Route::middleware(['auth', 'verified', 'admin'])
         ->prefix('admin')
@@ -66,6 +91,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('/deposits/{transaction}/reject', [DepositVerificationController::class, 'reject'])
                 ->name('admin.deposits.reject');
 
+            Route::get('/withdrawals/verification', [WithdrawVerificationController::class, 'index'])
+                ->name('admin.withdrawals.verification');
+
+            Route::post('/withdrawals/{transaction}/approve', [WithdrawVerificationController::class, 'approve'])
+                ->name('admin.withdrawals.approve');
+
+            Route::post('/withdrawals/{transaction}/reject', [WithdrawVerificationController::class, 'reject'])
+                ->name('admin.withdrawals.reject');
+
             Route::get('/deposits/manual', [ManualDepositController::class, 'index'])
                 ->name('admin.deposits.manual');
 
@@ -77,6 +111,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
             
             Route::get('/reports/transactions/export', [ReportController::class, 'exportTransactions'])
                 ->name('admin.reports.transactions.export');
+
+            Route::get('/activity-logs', [ActivityLogController::class, 'index'])
+            ->name('admin.activity-logs.index');
+
+            Route::get('/passbooks', [AdminPassbookController::class, 'index'])
+                ->name('admin.passbooks.index');
+
+            Route::get('/passbooks/pdf', [AdminPassbookController::class, 'pdf'])
+                ->name('admin.passbooks.pdf');
         });
 
     Route::middleware('auth')->group(function () {
