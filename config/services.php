@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'telegram' => [
+    'bot_token' => env('8731038465:AAHvuP-5drYGxPtB5L8kCfZ8ylghHWhqTX4'),
+    'webhook_secret' => env('td_telegram_9x7a2k_2026'),
+    'admin_chat_id' => env('TELEGRAM_ADMIN_CHAT_ID'),
+    ],
+
 ];

@@ -25,7 +25,7 @@ class ReportController extends Controller
             ->sum('amount');
 
         $users = User::where('role', 'user')
-            ->select('id', 'name', 'email')
+            ->select('id', 'name', 'email', 'member_number')
             ->orderBy('name')
             ->get();
 

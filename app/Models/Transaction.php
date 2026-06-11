@@ -10,6 +10,8 @@ class Transaction extends Model
     protected $fillable = [
         'user_id',
         'saving_goal_id',
+        'saving_type',
+        'program_id',
         'type',
         'amount',
         'status',
@@ -28,6 +30,11 @@ class Transaction extends Model
     public function savingGoal()
     {
         return $this->belongsTo(SavingGoal::class);
+    }
+
+    public function holidayProgram()
+    {
+        return $this->belongsTo(HolidaySavingProgram::class, 'program_id');
     }
 
     public function approvedBy()

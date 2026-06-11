@@ -94,6 +94,7 @@ class PassbookController extends Controller
             'passbookOwner' => [
                 'id' => $user->id,
                 'name' => $user->name,
+                'member_number' => $user->member_number,
                 'email' => $user->email,
             ],
             'savingGoals' => $savingGoals,

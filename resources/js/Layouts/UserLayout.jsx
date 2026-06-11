@@ -1,12 +1,15 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import { useState } from 'react';
 import Alert from '@/Components/Alert';
 
 export default function UserLayout({ children }) {
     const { auth } = usePage().props;
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [savingType, setSavingType] = useState(
+        () => localStorage.getItem('selectedSavingType') || 'general'
+    );
 
-    const menuItems = [
+    const generalMenuItems = [
         { label: 'Dashboard', href: '/dashboard', icon: 'D' },
         { label: 'Target Tabungan', href: '/saving-goals', icon: 'T' },
         { label: 'Riwayat Transaksi', href: '/transactions', icon: 'R' },
@@ -14,7 +17,40 @@ export default function UserLayout({ children }) {
         { label: 'Notifikasi', href: '/notifications', icon: 'N' },
     ];
 
+    const holidayMenuItems = [
+        { label: 'Dashboard Hari Raya', href: '/holiday/dashboard', icon: 'D' },
+        { label: 'Program Hari Raya', href: '/holiday/programs', icon: 'P' },
+        { label: 'Transaksi Hari Raya', href: '/holiday/transactions', icon: 'T' },
+        { label: 'Buku Tabungan Hari Raya', href: '/holiday/passbook', icon: 'B' },
+        { label: 'Notifikasi', href: '/notifications', icon: 'N' },
+    ];
+
+    const menuItems = savingType === 'holiday' ? holidayMenuItems : generalMenuItems;
+
     const isActive = (href) => window.location.pathname === href;
+
+    const changeSavingType = (value) => {
+        setSavingType(value);
+        localStorage.setItem('selectedSavingType', value);
+        setSidebarOpen(false);
+        router.visit(value === 'holiday' ? '/holiday/dashboard' : '/dashboard');
+    };
+
+    const SavingTypeSelector = () => (
+        <div className="mt-4 rounded-xl border border-[#E5E3DF] bg-white p-3">
+            <label className="mb-1 block text-xs font-semibold uppercase text-[#787671]">
+                Jenis Tabungan
+            </label>
+            <select
+                value={savingType}
+                onChange={(e) => changeSavingType(e.target.value)}
+                className="min-h-10 w-full rounded-lg border border-[#E5E3DF] bg-[#F6F5F4] px-3 py-2 text-sm font-semibold text-[#1A1A1A] outline-none focus:border-[#16A34A] focus:ring-2 focus:ring-[#16A34A]/15"
+            >
+                <option value="general">Tabungan Umum</option>
+                <option value="holiday">Tabungan Hari Raya</option>
+            </select>
+        </div>
+    );
 
     const SidebarContent = () => (
         <div className="flex h-full flex-col">
@@ -25,6 +61,7 @@ export default function UserLayout({ children }) {
                 <p className="mt-1 text-xs font-medium text-[#787671]">
                     User Workspace
                 </p>
+                <SavingTypeSelector />
             </div>
 
             <nav className="flex-1 overflow-y-auto p-3">
@@ -107,6 +144,16 @@ export default function UserLayout({ children }) {
                             >
                                 Menu
                             </button>
+                            <div className="min-w-[170px] lg:hidden">
+                                <select
+                                    value={savingType}
+                                    onChange={(e) => changeSavingType(e.target.value)}
+                                    className="min-h-10 w-full rounded-lg border border-[#E5E3DF] bg-white px-3 py-2 text-sm font-semibold text-[#1A1A1A] outline-none focus:border-[#16A34A] focus:ring-2 focus:ring-[#16A34A]/15"
+                                >
+                                    <option value="general">Tabungan Umum</option>
+                                    <option value="holiday">Tabungan Hari Raya</option>
+                                </select>
+                            </div>
                             <div>
                                 <p className="text-sm font-semibold text-[#1A1A1A]">
                                     Selamat datang, {auth?.user?.name}

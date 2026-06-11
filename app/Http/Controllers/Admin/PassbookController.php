@@ -57,7 +57,7 @@ class PassbookController extends Controller
     private function passbookData(Request $request): array
     {
         $users = User::where('role', 'user')
-            ->select('id', 'name', 'email')
+            ->select('id', 'name', 'email', 'member_number')
             ->orderBy('name')
             ->get();
 
@@ -130,6 +130,7 @@ class PassbookController extends Controller
             'passbookOwner' => $owner ? [
                 'id' => $owner->id,
                 'name' => $owner->name,
+                'member_number' => $owner->member_number,
                 'email' => $owner->email,
             ] : null,
             'savingGoals' => $savingGoals,

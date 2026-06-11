@@ -8,6 +8,7 @@ use App\Http\Controllers\User\DashboardController as UserDashboardController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\User\SavingGoalController;
 use App\Http\Controllers\User\TransactionController;
+use App\Http\Controllers\User\HolidayController;
 use App\Http\Controllers\Admin\DepositVerificationController;
 use App\Http\Controllers\Admin\ManualDepositController;
 use App\Http\Controllers\Admin\UserController as AdminUserController;
@@ -17,6 +18,14 @@ use App\Http\Controllers\User\NotificationController;
 use App\Http\Controllers\Admin\WithdrawVerificationController;
 use App\Http\Controllers\User\PassbookController as UserPassbookController;
 use App\Http\Controllers\Admin\PassbookController as AdminPassbookController;
+use App\Http\Controllers\Admin\ProgramFeeSettingController;
+use App\Http\Controllers\Admin\HolidayProgramController;
+use App\Http\Controllers\Admin\HolidayParticipantController;
+use App\Http\Controllers\Admin\HolidayDashboardController;
+use App\Http\Controllers\Admin\HolidayReportController;
+use App\Http\Controllers\Admin\HolidayFeeController;
+use App\Http\Controllers\Admin\HolidayWithdrawalController;
+use App\Http\Controllers\Admin\HolidayPassbookController;
 
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -70,6 +79,24 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/passbook/pdf', [UserPassbookController::class, 'pdf'])
         ->name('passbook.pdf');
+
+    Route::get('/holiday/dashboard', [HolidayController::class, 'dashboard'])
+        ->name('holiday.dashboard');
+
+    Route::get('/holiday/programs', [HolidayController::class, 'programs'])
+        ->name('holiday.programs.index');
+
+    Route::get('/holiday/programs/{program}', [HolidayController::class, 'showProgram'])
+        ->name('holiday.programs.show');
+
+    Route::get('/holiday/transactions', [HolidayController::class, 'transactions'])
+        ->name('holiday.transactions.index');
+
+    Route::get('/holiday/passbook', [HolidayController::class, 'passbook'])
+        ->name('holiday.passbook.index');
+
+    Route::get('/holiday/passbook/pdf', [HolidayController::class, 'passbookPdf'])
+        ->name('holiday.passbook.pdf');
         
     });
 
@@ -81,6 +108,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
             Route::get('/users', [AdminUserController::class, 'index'])
                 ->name('admin.users.index');
+
+            Route::post('/users', [AdminUserController::class, 'store'])
+                ->name('admin.users.store');
+
+            Route::put('/users/{user}', [AdminUserController::class, 'update'])
+                ->name('admin.users.update');
+
+            Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])
+                ->name('admin.users.destroy');
 
             Route::get('/deposits/verification', [DepositVerificationController::class, 'index'])
                 ->name('admin.deposits.verification');
@@ -120,6 +156,81 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
             Route::get('/passbooks/pdf', [AdminPassbookController::class, 'pdf'])
                 ->name('admin.passbooks.pdf');
+
+            Route::get('/program-fees', [ProgramFeeSettingController::class, 'index'])
+                ->name('admin.program-fees.index');
+
+            Route::post('/program-fees/recalculate', [ProgramFeeSettingController::class, 'recalculate'])
+                ->name('admin.program-fees.recalculate');
+
+            Route::post('/program-fees/generate-holiday-withdrawals', [ProgramFeeSettingController::class, 'generateHolidayWithdrawals'])
+                ->name('admin.program-fees.generate-holiday-withdrawals');
+
+            Route::get('/holiday/dashboard', [HolidayDashboardController::class, 'index'])
+                ->name('admin.holiday.dashboard');
+
+            Route::get('/holiday/programs', [HolidayProgramController::class, 'index'])
+                ->name('admin.holiday.programs.index');
+
+            Route::post('/holiday/programs', [HolidayProgramController::class, 'store'])
+                ->name('admin.holiday.programs.store');
+
+            Route::put('/holiday/programs/{program}', [HolidayProgramController::class, 'update'])
+                ->name('admin.holiday.programs.update');
+
+            Route::delete('/holiday/programs/{program}', [HolidayProgramController::class, 'destroy'])
+                ->name('admin.holiday.programs.destroy');
+
+            Route::get('/holiday/participants', [HolidayParticipantController::class, 'index'])
+                ->name('admin.holiday.participants.index');
+
+            Route::post('/holiday/participants', [HolidayParticipantController::class, 'store'])
+                ->name('admin.holiday.participants.store');
+
+            Route::put('/holiday/participants/{participant}', [HolidayParticipantController::class, 'update'])
+                ->name('admin.holiday.participants.update');
+
+            Route::delete('/holiday/participants/{participant}', [HolidayParticipantController::class, 'destroy'])
+                ->name('admin.holiday.participants.destroy');
+
+            Route::post('/holiday/participants/{participant}/deposits', [HolidayParticipantController::class, 'storeDeposit'])
+                ->name('admin.holiday.participants.deposits.store');
+
+            Route::put('/holiday/deposits/{transaction}', [HolidayParticipantController::class, 'updateDeposit'])
+                ->name('admin.holiday.deposits.update');
+
+            Route::get('/holiday/fees', [HolidayFeeController::class, 'index'])
+                ->name('admin.holiday.fees.index');
+
+            Route::post('/holiday/fees/recalculate', [HolidayFeeController::class, 'recalculate'])
+                ->name('admin.holiday.fees.recalculate');
+
+            Route::get('/holiday/deposits/verification', fn () => Inertia::render('Admin/Holiday/DepositVerification'))
+                ->name('admin.holiday.deposits.verification');
+
+            Route::get('/holiday/withdrawals', [HolidayWithdrawalController::class, 'index'])
+                ->name('admin.holiday.withdrawals.index');
+
+            Route::post('/holiday/withdrawals/generate', [HolidayWithdrawalController::class, 'generate'])
+                ->name('admin.holiday.withdrawals.generate');
+
+            Route::post('/holiday/withdrawals/{transaction}/approve', [HolidayWithdrawalController::class, 'approve'])
+                ->name('admin.holiday.withdrawals.approve');
+
+            Route::post('/holiday/withdrawals/{transaction}/reject', [HolidayWithdrawalController::class, 'reject'])
+                ->name('admin.holiday.withdrawals.reject');
+
+            Route::get('/holiday/reports', [HolidayReportController::class, 'index'])
+                ->name('admin.holiday.reports.index');
+
+            Route::get('/holiday/reports/export', [HolidayReportController::class, 'export'])
+                ->name('admin.holiday.reports.export');
+
+            Route::get('/holiday/passbooks', [HolidayPassbookController::class, 'index'])
+                ->name('admin.holiday.passbooks.index');
+
+            Route::get('/holiday/passbooks/pdf', [HolidayPassbookController::class, 'pdf'])
+                ->name('admin.holiday.passbooks.pdf');
         });
 
     Route::middleware('auth')->group(function () {

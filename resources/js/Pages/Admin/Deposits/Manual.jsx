@@ -13,6 +13,11 @@ export default function Manual({ users, savingGoals, transactions }) {
     const formatRupiah = (value) => {
         return `Rp ${Number(value).toLocaleString('id-ID')}`;
     };
+    const onlyDigits = (value) => String(value || '').replace(/\D/g, '');
+    const formatRupiahInput = (value) => {
+        const digits = onlyDigits(value);
+        return digits ? `Rp ${Number(digits).toLocaleString('id-ID')}` : '';
+    };
 
     const filteredSavingGoals = useMemo(() => {
         if (!data.user_id) return [];
@@ -85,7 +90,7 @@ export default function Manual({ users, savingGoals, transactions }) {
                                         <option value="">-- Pilih User --</option>
                                         {users.map((user) => (
                                             <option key={user.id} value={user.id}>
-                                                {user.name} - {user.email}
+                                                {user.name} - {user.member_number || user.email}
                                             </option>
                                         ))}
                                     </select>
@@ -152,11 +157,12 @@ export default function Manual({ users, savingGoals, transactions }) {
                                         Nominal Setoran
                                     </label>
                                     <input
-                                        type="number"
-                                        value={data.amount}
-                                        onChange={(e) => setData('amount', e.target.value)}
+                                        type="text"
+                                        inputMode="numeric"
+                                        value={formatRupiahInput(data.amount)}
+                                        onChange={(e) => setData('amount', onlyDigits(e.target.value))}
                                         className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-blue-500 focus:outline-none"
-                                        placeholder="Contoh: 50000"
+                                        placeholder="Rp 50.000"
                                     />
 
                                     {errors.amount && (

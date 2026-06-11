@@ -21,6 +21,7 @@ class DepositVerificationController extends Controller
             $query->where(function ($q) use ($request) {
                 $q->whereHas('user', function ($userQuery) use ($request) {
                     $userQuery->where('name', 'like', '%' . $request->search . '%')
+                        ->orWhere('member_number', 'like', '%' . $request->search . '%')
                         ->orWhere('email', 'like', '%' . $request->search . '%');
                 })->orWhereHas('savingGoal', function ($goalQuery) use ($request) {
                     $goalQuery->where('title', 'like', '%' . $request->search . '%');

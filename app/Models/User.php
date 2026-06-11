@@ -13,7 +13,7 @@ use App\Models\SavingGoal;
 use App\Models\Transaction;
 use App\Models\Notification;
 
-#[Fillable(['name', 'email', 'password', 'role'])]
+#[Fillable(['name', 'member_number', 'email', 'password', 'role'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {

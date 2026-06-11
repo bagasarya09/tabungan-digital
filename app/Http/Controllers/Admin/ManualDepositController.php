@@ -16,7 +16,7 @@ class ManualDepositController extends Controller
     public function index()
     {
         $users = User::where('role', 'user')
-            ->select('id', 'name', 'email')
+            ->select('id', 'name', 'email', 'member_number')
             ->orderBy('name')
             ->get();
 

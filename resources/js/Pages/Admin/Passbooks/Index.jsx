@@ -62,7 +62,7 @@ export default function Index({ users, passbookOwner, savingGoals = [], transact
                                 <option value="">Pilih user</option>
                                 {users.map((user) => (
                                     <option key={user.id} value={user.id}>
-                                        {user.name} - {user.email}
+                                        {user.name} - {user.member_number || user.email}
                                     </option>
                                 ))}
                             </select>
@@ -183,8 +183,8 @@ export default function Index({ users, passbookOwner, savingGoals = [], transact
                                         <p className="font-semibold text-[#1A1A1A]">{passbookOwner.name}</p>
                                     </div>
                                     <div>
-                                        <p className="text-[#787671]">Email</p>
-                                        <p className="font-semibold text-[#1A1A1A]">{passbookOwner.email}</p>
+                                        <p className="text-[#787671]">No Anggota</p>
+                                        <p className="font-semibold text-[#1A1A1A]">{passbookOwner.member_number || passbookOwner.email}</p>
                                     </div>
                                     <div>
                                         <p className="text-[#787671]">Periode</p>
